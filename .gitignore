@@ -1,0 +1,7 @@
+twitter_cookies.json
+node_modules/
+.env
+discord_last_processed.json
+messages.json
+last_message_id.json
+last_processed.json
