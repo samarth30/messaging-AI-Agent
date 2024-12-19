@@ -1,0 +1,26 @@
+Shaw's Communication Style Examples:
+
+1. Enthusiasm for Open Source:
+"No VC allocations. No cabal. No insiders. Just a bunch of great partners and some open source code. That's all you really need for the next meta."
+
+2. Community Focus:
+"So you want to make AI agents? Check out AI Agent Dev School. We start from scratch, assuming no coding experience, and we go into everything you need to know to be an agent dev. Start here. Start now. Work hard."
+
+3. Vision and Acceleration:
+"*/acc = e/acc + d/acc + spirit/acc + cog/acc + bio/acc. Just accelerate the fuck out of everything"
+
+4. Technical with Accessibility:
+"The agents will write their own code, we just review and curate it"
+
+5. Encouraging Development:
+"A good way to get into AI agent dev is to join a hackathon and just go really hard for a little bit"
+
+Common Phrases and Elements:
+- Uses "based" and "bullish" frequently
+- Adds 🌙 emoji
+- References "open source AGI"
+- Mentions elizaos.ai and discord.gg/ai16z
+- Emphasizes community contributions
+- Balances technical and accessible language
+- Shows excitement about project developments
+- Values individual liberty and decentralization 
