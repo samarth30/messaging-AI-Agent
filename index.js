@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 require("dotenv").config();
 const OpenAI = require("openai");
+const axios = require("axios");
 
 // Initialize OpenAI
 const openai = new OpenAI({
@@ -98,89 +99,41 @@ async function initializeScraper() {
   }
 }
 
-// Function to generate AI response using OpenAI
+// Function to generate AI response using local API
 async function generateAIResponse(message) {
-  const prompt = `Analyze the following message and provide a response recommendation. Use these examples as guidance:
-
-Example Messages and Responses:
-1. General Project Questions:
-   "Is this the real Shaw/AI16Z?" 
-   → Response: "Yes, this is the official account. Be cautious of impersonators. You can verify our official links at [link]"
-
-2. Token/Investment Related:
-   "When is the next AI16Z token launch?"
-   → Response: "We don't discuss token launches or investment opportunities in DMs. Please follow our official announcements on @ai16zdao for updates."
-
-3. Magic/AI Development:
-   "Can you help me understand how to implement AI in my project?"
-   → Response: "Check out our resources at [link]. For detailed discussions, join our Discord community where we regularly share AI development insights."
-
-4. Partnership/Business:
-   "Would love to explore collaboration opportunities with AI16Z"
-   → Response: please connect with Business Development team please contact @jasyn_bjorn in discord
-   
-5. Technical Support:
-   "Having issues with the AI integration"
-   → Response: "For technical support, please: 1) Check our documentation at [link] 2) Join our Discord community 3) Open a GitHub issue"
-
-6. Appreciation:
-   "Your work on AI is groundbreaking!"
-   → Response: "Thank you! We're passionate about advancing AI technology. Stay updated with our latest work by following @shawmakesmagic and @ai16zdao"
-
-7. Scam Reports:
-   "Someone is impersonating AI16Z/Shaw"
-   → Response: "Thank you for reporting. Please be aware our only official accounts are @shawmakesmagic and @ai16zdao. Report any impersonators to Twitter."
-
-few examples 
-Hey Shawn we want to do collaboration with you can we do it.
-This is a collaboration message 
-→ Response: please connect with Business Development team please contact @jasyn_bjorn in discord
-
-   Few links 
-   https://ai16z.github.io/eliza/
-   https://discord.com/invite/ai16z
-   https://twitter.com/ai16zdao
-Analyze this message: "${message}"
-
-Provide response in JSON format with:
-{
-  "messageType": "verification|technical|partnership|appreciation|scam|token|general",
-  "tone": {
-    "urgency": "low|medium|high",
-    "sentiment": "positive|neutral|negative",
-    "formality": "casual|professional"
-  },
-  "recommendedAction": "autoReply|routeToBizDev|routeToTech|ignore",
-  "suggestedResponse": "string or null",
-  "routeTo": "bizDev|techTeam|community|null",
-  "followUpNeeded": boolean,
-  "securityConcern": boolean
-}
-
-Important: Return only the JSON object without any markdown formatting or additional text.`;
+  const payload = {
+    query: message,
+  };
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4-turbo-preview",
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are an AI assistant analyzing Twitter DMs. Respond only with valid JSON.",
-        },
-        { role: "user", content: prompt },
-      ],
-      temperature: 0.7,
+    // let's use axios to make the request add content type
+    const response = await axios.post("http://127.0.0.1:5000/query", payload, {
+      headers: {
+        "Content-Type": "application/json",
+      },
     });
 
-    const response = completion.choices[0].message.content;
-    console.log("Raw AI Response:", response);
+    if (response.status !== 200) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
 
-    // Clean the response by removing markdown formatting if present
-    const cleanedResponse = response.replace(/```json\n?|\n?```/g, "").trim();
-    console.log("Cleaned Response:", cleanedResponse);
+    const data = response.data;
+    console.log("API Response:", data);
 
-    return JSON.parse(cleanedResponse);
+    // Assuming the response structure matches the expected JSON format
+    return {
+      // messageType: "partnership", // Example, adjust based on your logic
+      // tone: {
+      //   urgency: "low",
+      //   sentiment: "positive",
+      //   formality: "casual",
+      // },
+      // recommendedAction: "autoReply",
+      suggestedResponse: data.answer,
+      // routeTo: null,
+      // followUpNeeded: false,
+      // securityConcern: false,
+    };
   } catch (error) {
     console.error("Error generating AI response:", error);
     // Return a default response in case of error
@@ -237,6 +190,7 @@ async function processDirectMessages(scraper) {
 
       console.log("lastMessage: ", lastMessage);
       console.log(analysis);
+      // break;
 
       // Send response if recommended
       if (analysis.suggestedResponse) {

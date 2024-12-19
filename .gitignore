@@ -5,3 +5,5 @@ discord_last_processed.json
 messages.json
 last_message_id.json
 last_processed.json
+python-server/venv/
+python-server/db/
