@@ -100,24 +100,36 @@ async function initializeScraper() {
 }
 
 // Function to generate AI response using local API
-async function generateAIResponse(message) {
-  const payload = {
-    query: message,
-  };
+async function generateAIResponse(input) {
+  // const payload = {
+  //   query: message,
+  // };
 
   try {
     // let's use axios to make the request add content type
-    const response = await axios.post("http://127.0.0.1:5000/query", payload, {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+
+    const response = await fetch(
+      `http://localhost:3000/42aaac77-ba1b-0e96-bb52-db321ddfa6de/message`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: input,
+          userId: "user",
+          userName: "User",
+        }),
+      }
+    );
 
     if (response.status !== 200) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const data = response.data;
+    const data = await response.json();
+    data.forEach((message) => console.log(`${"Agent"}: ${message.text}`));
+    // get only the last message
+    const lastMessage = data[data.length - 1];
+
     console.log("API Response:", data);
 
     // Assuming the response structure matches the expected JSON format
@@ -129,7 +141,8 @@ async function generateAIResponse(message) {
       //   formality: "casual",
       // },
       // recommendedAction: "autoReply",
-      suggestedResponse: data.answer,
+      // respond with message.txt how can i do that
+      suggestedResponse: lastMessage.text,
       // routeTo: null,
       // followUpNeeded: false,
       // securityConcern: false,
@@ -173,7 +186,7 @@ async function processDirectMessages(scraper) {
     // Process each conversation
     for (const conversation of conversations.conversations) {
       const conversationId = conversation.conversationId;
-      const messages = conversation.messages;
+      const messages = conversation?.messages;
 
       if (!messages || messages.length === 0) continue;
 
@@ -228,7 +241,7 @@ async function main() {
     while (true) {
       await processDirectMessages(scraper);
       console.log("Waiting 10 minutes before next check...");
-      await sleep(10 * 60 * 1000); // Wait 10 minutes
+      await sleep(1 * 60 * 1000); // Wait 10 minutes
     }
   } catch (error) {
     console.error("Fatal error:", error);
