@@ -28,10 +28,6 @@ TWITTER_ACCESS_TOKEN=token             # Twitter access token
 TWITTER_ACCESS_TOKEN_SECRET=tokensecret # Twitter access token secret
 ```
 
-### Optional Variables
-
-The following optional variables can be used to enhance functionality:
-
 ```plaintext
 PROXY_URL=                             # HTTP(s) proxy for requests
 
