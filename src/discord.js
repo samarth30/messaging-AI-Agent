@@ -125,7 +125,58 @@ const sendMessage = async (channelId, content) => {
   }
 };
 
-// Main function to read DMs and send a response
+// Add these helper functions
+function isRecentMessage(message, timeThresholdMinutes = 60) {
+  const messageTime = new Date(message.timestamp);
+  const currentTime = new Date();
+  const diffInMinutes = (currentTime - messageTime) / (1000 * 60);
+  return diffInMinutes <= timeThresholdMinutes;
+}
+
+function isConversationStarter(message) {
+  const starterPhrases = ["hi", "hey", "hello", "yo", "sup"];
+  return starterPhrases.includes(message.content.toLowerCase().trim());
+}
+
+// Update the shouldSkipMessage function
+function shouldSkipMessage(message) {
+  // Basic checks
+
+  // Skip messages that are just links or emojis
+  const hasOnlyLinks = /^(https?:\/\/[^\s]+)$/g.test(message.content);
+  const hasOnlyEmojis = /^[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\s]+$/u.test(
+    message.content
+  );
+  if (hasOnlyLinks || hasOnlyEmojis) {
+    return true;
+  }
+
+  // Skip if message is too old
+  if (!isRecentMessage(message)) {
+    return true;
+  }
+
+  // Skip single character or very short messages
+  // if (message.content.length <= 2) {
+  //   return true;
+  // }
+
+  // Skip if it's just a greeting without follow-up
+  // if (isConversationStarter(message)) {
+  //   // Check if there's a follow-up message within 1 minute
+  //   const messages = messageStore.getChannelMessages(message.channel_id);
+  //   const hasFollowUp = messages.some(msg =>
+  //     msg.author.id === message.author.id &&
+  //     msg.id !== message.id &&
+  //     Math.abs(new Date(msg.timestamp) - new Date(message.timestamp)) <= 60000 // 1 minute
+  //   );
+  //   if (!hasFollowUp) return true;
+  // }
+
+  return false;
+}
+
+// Update the main function
 const main = async (characterName) => {
   try {
     const channels = await fetchDMChannels();
@@ -143,6 +194,14 @@ const main = async (characterName) => {
       if (channelMessages && channelMessages?.length > 0) {
         const latestMessage = channelMessages[0];
 
+        if (
+          latestMessage.author.bot ||
+          latestMessage.author.username === process.env.DISCORD_USER_NAME ||
+          latestMessage.content?.includes("👍")
+        ) {
+          continue;
+        }
+
         if (shouldSkipMessage(latestMessage)) continue;
 
         const content = getMessageHistory(channelMessages);
@@ -158,25 +217,16 @@ const main = async (characterName) => {
           const sent = await sendMessage(channel.id, analysis.response);
           if (sent) {
             console.log(`Responded to channel ${channel.id}`);
-            await sleep(120 * 1000);
+            // let's make time to 30 seconds
+            await sleep(30 * 1000); // Small delay to avoid rate limits
           }
         }
       }
-
-      await sleep(3000);
     }
   } catch (error) {
     console.error("Error in main function:", error);
   }
 };
-
-function shouldSkipMessage(message) {
-  return (
-    message.author.bot ||
-    message.author.username === process.env.DISCORD_USER_NAME ||
-    message.content?.includes("👍")
-  );
-}
 
 function getMessageHistory(messages) {
   const content = [];
@@ -198,8 +248,8 @@ async function runBot() {
   while (true) {
     await main(characterName);
 
-    console.log("Waiting 1 minute before next check...");
-    await sleep(15 * 1000);
+    console.log("Waiting 10 minutes before next check...");
+    await sleep(15 * 60 * 1000);
   }
 }
 

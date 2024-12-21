@@ -50,6 +50,27 @@ async function saveCookies(scraper) {
   }
 }
 
+// get twitter id from cookies function
+function getTwitterIdFromCookies() {
+  // add try catch
+  try {
+    // Read cookies from the file system
+    const cookiesData = fs.readFileSync(
+      path.resolve(__dirname, "twitter_cookies.json"),
+      "utf8"
+    );
+    const cookiesArray = JSON.parse(cookiesData);
+
+    // get twid key value from it
+    const twid = cookiesArray.find((cookie) => cookie.key === "twid")?.value;
+    const twitterUserId = twid.split("u=")[1];
+    return twitterUserId;
+  } catch (error) {
+    console.error("Error getting twitter id from cookies:", error);
+    return null;
+  }
+}
+
 // Function to load cookies
 async function loadCookies(scraper) {
   try {
@@ -89,11 +110,12 @@ async function initializeScraper() {
     const cookiesLoaded = await loadCookies(scraper);
 
     if (cookiesLoaded) {
+      // can we load cookies again i wanna get twid key value from it
+      const twitterUserId = getTwitterIdFromCookies();
+      console.log(twitterUserId, "twitterUserId");
       // Verify if cookies are still valid by making a test request
       try {
-        await scraper.getDirectMessageConversations(
-          process.env.TWITTER_USER_ID
-        );
+        await scraper.getDirectMessageConversations(twitterUserId);
         console.log("Existing cookies are valid");
         return scraper;
       } catch (error) {
@@ -118,10 +140,39 @@ async function initializeScraper() {
   }
 }
 
+// Add helper functions for message filtering
+function isRecentMessage(message, timeThresholdMinutes = 60) {
+  const messageTime = message.createdAt;
+  const currentTime = Date.now();
+  const diffInMinutes = (currentTime - messageTime) / (1000 * 60);
+  return diffInMinutes <= timeThresholdMinutes;
+}
+
+// Update shouldSkipMessage function with more checks
+function shouldSkipMessage(message) {
+  console.log(message);
+  // Skip messages that are just links or emojis
+  const hasOnlyLinks = /^(https?:\/\/[^\s]+)$/g.test(message.text);
+  const hasOnlyEmojis = /^[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\s]+$/u.test(
+    message.text
+  );
+  if (hasOnlyLinks || hasOnlyEmojis) {
+    return true;
+  }
+  console.log(isRecentMessage(message));
+  // Skip if message is too old
+  if (!isRecentMessage(message)) {
+    return true;
+  }
+
+  return false;
+}
+
 async function processDirectMessages(scraper) {
   try {
+    const twitterUserId = getTwitterIdFromCookies();
     const conversations = await scraper.getDirectMessageConversations(
-      process.env.TWITTER_USER_ID
+      twitterUserId
     );
 
     const lastProcessedMessages = loadLastProcessed("last_processed.json");
@@ -143,10 +194,19 @@ async function processDirectMessages(scraper) {
 
       const lastMessage = messages[messages.length - 1];
 
+      // Basic message filtering
+      if (
+        lastMessage.senderId === twitterUserId ||
+        lastMessage.text.includes("Reacted with") ||
+        lastMessage.text.includes("👍")
+      ) {
+        continue;
+      }
+
+      // Additional message quality checks
       if (shouldSkipMessage(lastMessage)) continue;
 
-      const content = getMessageHistory(messages);
-
+      const content = getMessageHistory(messages, twitterUserId);
       if (content?.length === 0) continue;
 
       const analysis = await aiService.generateResponse(content, characterName);
@@ -162,7 +222,9 @@ async function processDirectMessages(scraper) {
             messageStore.storeMessage(conversationId, response);
           }
           console.log(`Responded to conversation ${conversationId}`);
-          await sleep(30 * 1000);
+          // let's make time to 30 seconds
+          await sleep(30 * 1000); // Small delay to avoid rate limits
+          console.log("Waiting 30 seconds before next message...");
         } catch (error) {
           console.error("Error sending message:", error);
           if (error.message.includes("Cannot send messages to this user")) {
@@ -184,20 +246,12 @@ async function processDirectMessages(scraper) {
   }
 }
 
-function shouldSkipMessage(message) {
-  return (
-    message.senderId === process.env.TWITTER_USER_ID ||
-    message.text.includes("Reacted with") ||
-    message.text.includes(":")
-  );
-}
-
-function getMessageHistory(messages) {
+function getMessageHistory(messages, twitterUserId) {
   const content = [];
   // have to start array from the last message
   for (let i = messages.length - 1; i >= 0; i--) {
     const message = messages[i];
-    if (message.senderId === process.env.TWITTER_USER_ID) {
+    if (message.senderId === twitterUserId) {
       break;
     }
     content.push(message.text);
@@ -216,8 +270,8 @@ async function main() {
     // Run continuously
     while (true) {
       await processDirectMessages(scraper);
-      console.log("Waiting 10 minutes before next check...");
-      await sleep(30 * 60 * 1000); // Wait 10 minutes
+      console.log("Waiting 15 minutes before next check...");
+      await sleep(15 * 60 * 1000); // Wait 15 minutes
     }
   } catch (error) {
     console.error("Fatal error:", error);

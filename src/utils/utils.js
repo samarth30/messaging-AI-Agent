@@ -36,7 +36,7 @@ function formatCharacter(characterName) {
     // Load character file from the character folder
     const characterPath = path.join(
       __dirname,
-      "../character",
+      "../../character",
       `${characterName}.character.json`
     );
     const character = JSON.parse(fs.readFileSync(characterPath, "utf8"));
