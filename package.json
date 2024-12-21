@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start-discord": "node src/discord.js --characters=src/characters/shaw.json",
+    "start-twitter": "node src/twitter.js --characters=src/characters/twitter.json"
   },
   "author": "",
   "license": "ISC",
@@ -17,7 +19,7 @@
     "path": "^0.12.7"
   },
   "devDependencies": {
-    "ai": "^4.0.18",
+    "ai": "^4.0.21",
     "zod": "^3.24.1"
   }
 }
