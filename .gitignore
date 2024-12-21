@@ -8,3 +8,4 @@ last_processed.json
 python-server/venv/
 python-server/db/
 testing/
+messages-local/
