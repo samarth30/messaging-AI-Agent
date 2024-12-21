@@ -216,7 +216,7 @@ async function processDirectMessages(scraper) {
 
         // Add delay after sending each message to avoid rate limits
         console.log("Waiting 2 mins before processing next message...");
-        await sleep(120 * 1000); // 2 mins delay between messages
+        await sleep(30 * 1000); // 2 mins delay between messages
       }
 
       // Update last processed message
@@ -241,7 +241,7 @@ async function main() {
     while (true) {
       await processDirectMessages(scraper);
       console.log("Waiting 10 minutes before next check...");
-      await sleep(1 * 60 * 1000); // Wait 10 minutes
+      await sleep(30 * 60 * 1000); // Wait 10 minutes
     }
   } catch (error) {
     console.error("Fatal error:", error);
