@@ -80,6 +80,7 @@ node src/twitter.js --characters=src/characters/shaw.character.json
 ## Notes
 
 - Ensure that the `.env` file is properly configured before running any commands.
+
 - The `shaw.character.json` file should contain the configuration for the characters used in the integration. Replace this file path with your desired character configuration if needed.
 - Use a valid proxy URL if you encounter network restrictions or need to route traffic through a proxy.
 
