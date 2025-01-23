@@ -72,7 +72,13 @@ node src/discord.js --characters=src/characters/shaw.character.json
 To run the Twitter integration, use this command:
 
 ```bash
-node src/twitter.js --characters=src/characters/shaw.character.json
+node src/twitterDmAutomation.js --characters=src/characters/shaw.character.json
+```
+
+To run the Twitter retweet functionality, use this command:
+
+```bash
+node src/twitter.js
 ```
 
 ---
