@@ -1,0 +1,87 @@
+{
+  "eliza_studios": {
+    "userId": "1875756320948908033",
+    "user": {
+      "avatar": "https://pbs.twimg.com/profile_images/1877834164117901312/tp9IO3DU.png",
+      "banner": "https://pbs.twimg.com/profile_banners/1875756320948908033/1736107767",
+      "biography": "ᴇxᴘʀᴇss ʏᴏᴜʀsᴇʟꜰ",
+      "followersCount": 3956,
+      "followingCount": 51,
+      "friendsCount": 51,
+      "mediaCount": 3,
+      "isPrivate": false,
+      "isVerified": false,
+      "likesCount": 456,
+      "listedCount": 48,
+      "location": "",
+      "name": "ELIZA STUDIOS",
+      "pinnedTweetIds": [],
+      "tweetsCount": 15,
+      "url": "https://twitter.com/eliza_studios",
+      "userId": "1875756320948908033",
+      "username": "eliza_studios",
+      "isBlueVerified": true,
+      "canDm": true,
+      "joined": "2025-01-05T04:09:00.000Z",
+      "website": "http://www.elizastudios.ai"
+    }
+  },
+  "elizawakesup": {
+    "userId": "1852582218528628736",
+    "user": {
+      "avatar": "https://pbs.twimg.com/profile_images/1867788948933582848/hZwR1MiM.jpg",
+      "banner": "https://pbs.twimg.com/profile_banners/1852582218528628736/1734150233",
+      "biography": "Eliza is a real girl. 5voS9evDjxF589WuEub5i4ti7FWQmZCsAsyD5ucbuRqM",
+      "followersCount": 28946,
+      "followingCount": 24,
+      "friendsCount": 24,
+      "mediaCount": 147,
+      "isPrivate": false,
+      "isVerified": false,
+      "likesCount": 108,
+      "listedCount": 319,
+      "location": "",
+      "name": "Eliza",
+      "pinnedTweetIds": [
+        "1864968848677408892"
+      ],
+      "tweetsCount": 9003,
+      "url": "https://twitter.com/elizawakesup",
+      "userId": "1852582218528628736",
+      "username": "elizawakesup",
+      "isBlueVerified": true,
+      "canDm": true,
+      "joined": "2024-11-02T05:23:24.000Z",
+      "website": "https://linktr.ee/elizawakesup"
+    }
+  },
+  "ai16zdao": {
+    "userId": "1851849397979480064",
+    "user": {
+      "avatar": "https://pbs.twimg.com/profile_images/1879074634395537408/dZ2uHLAc.jpg",
+      "banner": "https://pbs.twimg.com/profile_banners/1851849397979480064/1736840205",
+      "biography": "AI led hedge fun / open-source AGI movement\n\nPartners: @degenspartanai / @aixvc_agent\n\nBuilding: https://t.co/jcocThpac1\n\nNo affiliation with a16z",
+      "followersCount": 134824,
+      "followingCount": 246,
+      "friendsCount": 246,
+      "mediaCount": 122,
+      "isPrivate": false,
+      "isVerified": false,
+      "likesCount": 3763,
+      "listedCount": 1409,
+      "location": "daos.fun",
+      "name": "V2 Loading █████▒▒▒",
+      "pinnedTweetIds": [
+        "1852565056640241793"
+      ],
+      "tweetsCount": 957,
+      "url": "https://twitter.com/ai16zdao",
+      "userId": "1851849397979480064",
+      "username": "ai16zdao",
+      "isBlueVerified": true,
+      "canDm": true,
+      "joined": "2024-10-31T04:51:37.000Z",
+      "website": "https://elizaos.ai/"
+    }
+  }
+}

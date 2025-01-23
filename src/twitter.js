@@ -18,19 +18,45 @@ const blacklistManager = new BlacklistManager("twitter");
 const messageStore = new MessageStore("twitter");
 
 // Get character file path from command line arguments
-const characterPath = process.argv
-  .find((arg) => arg.startsWith("--characters="))
-  ?.split("=")[1];
+// const characterPath = process.argv
+//   .find((arg) => arg.startsWith("--characters="))
+//   ?.split("=")[1];
 
-if (!characterPath) {
-  console.error(
-    'Please provide a character file path using --characters="path/to/character.json"'
-  );
-  process.exit(1);
-}
+// if (!characterPath) {
+//   console.error(
+//     'Please provide a character file path using --characters="path/to/character.json"'
+//   );
+//   process.exit(1);
+// }
 
 // Get character name from the file path
-const characterName = characterPath.split("/").pop().split(".")[0];
+// const characterName = characterPath.split("/").pop().split(".")[0];
+
+// Add near the top with other requires
+const USER_IDS_PATH = path.resolve(__dirname, "twitter_user_ids.json");
+
+// Add these utility functions for managing cached user IDs
+function loadCachedUserIds() {
+  try {
+    if (fs.existsSync(USER_IDS_PATH)) {
+      const data = fs.readFileSync(USER_IDS_PATH, "utf8");
+      return JSON.parse(data);
+    }
+    return {};
+  } catch (error) {
+    console.error("Error loading cached user IDs:", error);
+    return {};
+  }
+}
+
+function saveUserIds(userIds) {
+  try {
+    fs.writeFileSync(USER_IDS_PATH, JSON.stringify(userIds, null, 2));
+    console.log("User IDs cached successfully");
+  } catch (error) {
+    console.error("Error saving user IDs cache:", error);
+  }
+}
 
 // Function to save cookies
 async function saveCookies(scraper) {
@@ -168,84 +194,6 @@ function shouldSkipMessage(message) {
   return false;
 }
 
-async function processDirectMessages(scraper) {
-  try {
-    const twitterUserId = getTwitterIdFromCookies();
-    const conversations = await scraper.getDirectMessageConversations(
-      twitterUserId
-    );
-
-    const lastProcessedMessages = loadLastProcessed("last_processed.json");
-
-    for (const conversation of conversations.conversations) {
-      const { conversationId, messages } = conversation;
-
-      if (!messages?.length) continue;
-
-      // Store messages
-      messages.forEach((message) => {
-        messageStore.storeMessage(conversationId, message);
-      });
-
-      if (blacklistManager.isBlacklisted(conversationId)) {
-        console.log(`Skipping blacklisted conversation: ${conversationId}`);
-        continue;
-      }
-
-      const lastMessage = messages[messages.length - 1];
-
-      // Basic message filtering
-      if (
-        lastMessage.senderId === twitterUserId ||
-        lastMessage.text.includes("Reacted with") ||
-        lastMessage.text.includes("👍")
-      ) {
-        continue;
-      }
-
-      // Additional message quality checks
-      if (shouldSkipMessage(lastMessage)) continue;
-
-      const content = getMessageHistory(messages, twitterUserId);
-      if (content?.length === 0) continue;
-
-      const analysis = await aiService.generateResponse(content, characterName);
-
-      if (analysis?.response) {
-        try {
-          const response = await scraper.sendDirectMessage(
-            conversationId,
-            analysis.response
-          );
-          // Store sent message if available
-          if (response) {
-            messageStore.storeMessage(conversationId, response);
-          }
-          console.log(`Responded to conversation ${conversationId}`);
-          // let's make time to 30 seconds
-          await sleep(30 * 1000); // Small delay to avoid rate limits
-          console.log("Waiting 30 seconds before next message...");
-        } catch (error) {
-          console.error("Error sending message:", error);
-          if (error.message.includes("Cannot send messages to this user")) {
-            blacklistManager.addToBlacklist(
-              conversationId,
-              "Cannot send messages to this user"
-            );
-            console.log(`Conversation ${conversationId} added to blacklist`);
-          }
-        }
-      }
-
-      lastProcessedMessages.set(conversationId, lastMessage.id);
-    }
-
-    saveLastProcessed("last_processed.json", lastProcessedMessages);
-  } catch (error) {
-    console.error("Error processing messages:", error);
-  }
-}
-
 function getMessageHistory(messages, twitterUserId) {
   const content = [];
   // have to start array from the last message
@@ -259,17 +207,156 @@ function getMessageHistory(messages, twitterUserId) {
   return content.reverse().join("\n");
 }
 
+async function withRetry(operation, maxAttempts = 1) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (attempt === maxAttempts) throw error;
+      console.log(`Attempt ${attempt} failed, retrying...`);
+      await sleep(1000 * attempt); // Exponential backoff
+    }
+  }
+}
+
+async function handleRateLimit(error) {
+  if (error.status === 429) {
+    // Rate limit exceeded
+    const resetTime = error.headers?.["x-rate-limit-reset"];
+    if (resetTime) {
+      const waitTime = resetTime * 1000 - Date.now() + 1000; // Add 1 second buffer
+      console.log(`Rate limited. Waiting ${waitTime / 1000} seconds...`);
+      await sleep(waitTime);
+      return true;
+    }
+  }
+  return false;
+}
+
+// Modify the getUserIdByUsername function
+async function getUserIdByUsername(scraper, username) {
+  // First check the cache
+  const cachedIds = loadCachedUserIds();
+
+  if (cachedIds[username]) {
+    console.log(`Found cached ID for ${username}: ${cachedIds[username]}`);
+    return cachedIds[username]?.userId;
+  }
+
+  try {
+    const user = await scraper.getProfile(username);
+    const userId = user?.userId;
+
+    if (userId) {
+      // Update cache with new ID
+      cachedIds[username] = { userId, user };
+      saveUserIds(cachedIds);
+      console.log(`Cached new ID for ${username}: ${userId}`);
+    }
+
+    return userId;
+  } catch (error) {
+    console.error(`Error getting user ID for ${username}:`, error);
+    return null;
+  }
+}
+
+async function monitorAndRetweet(scraper) {
+  const accounts = ["eliza_studios", "elizawakesup", "ai16zdao"];
+
+  try {
+    // First, get user IDs for all accounts
+    const userIdMap = new Map();
+    for (const username of accounts) {
+      const userId = await getUserIdByUsername(scraper, username);
+
+      if (userId) {
+        userIdMap.set(username, userId);
+        console.log(`Resolved ${username} to ID: ${userId}`);
+      } else {
+        console.error(`Could not resolve user ID for ${username}`);
+      }
+    }
+
+    // Now fetch tweets using user IDs
+    for (const [username, userId] of userIdMap) {
+      try {
+        // Get user's recent tweets using the numeric ID
+        let userTweets = await scraper.getUserTweets(userId);
+        userTweets = userTweets?.tweets.filter((tweet) => !tweet.isRetweet);
+        console.log(`Fetched tweets for ${username} (${userId}):`, userTweets);
+
+        if (!Array.isArray(userTweets)) {
+          console.log(`No tweets found to be retweeted for ${username}`);
+          continue;
+        }
+
+        // Process only the first 10 tweets
+        const tweets = userTweets.slice(0, 10);
+
+        for (const tweet of tweets) {
+          try {
+            // For ai16zdao, retweet everything
+            if (username === "ai16zdao") {
+              if (!tweet.isRetweet) {
+                await scraper.retweet(tweet.id);
+                console.log(`Retweeted tweet ${tweet.id} from ${username}`);
+                // Add delay between retweets to avoid rate limits
+                await sleep(10000);
+              }
+              continue;
+            }
+
+            // For Eliza accounts, only retweet if there's a video
+            if (
+              (username === "eliza_studios" || username === "elizawakesup") &&
+              tweet?.videos?.length > 0 &&
+              !tweet.isRetweet
+            ) {
+              await scraper.retweet(tweet.id);
+              console.log(`Retweeted video tweet ${tweet.id} from ${username}`);
+              // Add delay between retweets to avoid rate limits
+              await sleep(10000);
+            }
+          } catch (tweetError) {
+            console.error(`Error processing tweet ${tweet.id}:`, tweetError);
+            continue;
+          }
+        }
+      } catch (userError) {
+        console.error(`Error fetching tweets for ${username}:`, userError);
+        console.log(userError?.data?.errors);
+        continue;
+      }
+    }
+  } catch (error) {
+    console.error("Error in monitorAndRetweet:", error);
+  }
+}
+
+// Modify the main function to include the new monitoring functionality
 async function main() {
   try {
-    console.log(
-      `Starting Twitter bot with character: ${characterName} from ${characterPath}`
-    );
+    // console.log(
+    //   `Starting Twitter bot with character: ${characterName} from ${characterPath}`
+    // );
 
     const scraper = await initializeScraper();
 
     // Run continuously
     while (true) {
-      await processDirectMessages(scraper);
+      try {
+        // Monitor and retweet
+        await monitorAndRetweet(scraper);
+      } catch (error) {
+        console.error("Error during monitoring cycle:", error);
+
+        // Handle rate limits
+        if (await handleRateLimit(error)) {
+          continue; // Retry immediately after rate limit wait
+        }
+      }
+
       console.log("Waiting 15 minutes before next check...");
       await sleep(15 * 60 * 1000); // Wait 15 minutes
     }

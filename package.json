@@ -5,13 +5,13 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start-discord": "node src/discord.js --characters=src/characters/shaw.json",
-    "start-twitter": "node src/twitter.js --characters=src/characters/twitter.json"
+    "start-twitter": "node src/twitterDmAutomation.js --characters=src/characters/twitter.json"
   },
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "agent-twitter-client": "file:agent-twitter-client-0.0.16.tgz",
+    "agent-twitter-client": "^0.0.18",
     "axios": "^1.7.9",
     "dotenv": "^16.4.7",
     "fs": "^0.0.1-security",
